@@ -44,7 +44,25 @@ Trigger: count of carried patches in `git log tracking..main`.
 
 ## Carried patches
 
-*(none yet — fork created 2026-06-08, tracking upstream as of `ba103c7f`)*
+### 2026-06-08 — Add `cubecl-shim-gen` crate
+
+**Upstream PR/issue**: not yet filed; will pitch to the team in
+conversation rather than via GitHub.
+
+**Why we carry**: build-time emitter for CubeCL CUDA kernels.
+Produces `.cu` source + a Rust constants module per kernel,
+intended to be consumed by build scripts of downstream crates
+(`mistralrs-paged-attn` for paged KV cache scatter, `candle-cubecl`
+for candle op ports). The crate sits naturally inside CubeCL —
+it's a CubeCL-specific tool — so versioning stays in lockstep with
+the emission semantics it depends on. Lives in
+`crates/cubecl-shim-gen/`.
+
+**Removal trigger**: equivalent functionality lands upstream, or
+upstream rejects the contribution and we choose to keep maintaining
+it as a fork-only crate.
+
+**Commits**: `4bf0b58e..HEAD` (single commit so far).
 
 When a patch lands here that hasn't been accepted upstream, add an
 entry below in this format:
