@@ -1,0 +1,19 @@
+[package]
+name = "cubecl-shim-gen"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+description = "Build-time emitter for CubeCL kernels — produces .cu source and a Rust constants module per kernel for downstream launch shims."
+license.workspace = true
+
+# Standalone build-time tool. Consumers depend on this via
+# [build-dependencies]; the crate itself depends on cubecl-core (for
+# Compiler trait + KernelDefinition) and cubecl-cuda (for the CUDA
+# backend's compiler). cubecl-std supplies View / Tensor types that
+# show up in the cube kernels we emit, but we don't directly depend
+# on it — consumers pull it transitively through their own #[cube]
+# code.
+[dependencies]
+cubecl-core = { path = "../cubecl-core", version = "=0.11.0-pre.1", default-features = false, features = ["std"] }
+cubecl-cuda = { path = "../cubecl-cuda", version = "=0.11.0-pre.1", default-features = false, features = ["std"] }
+thiserror = { workspace = true }
