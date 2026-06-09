@@ -1376,6 +1376,12 @@ impl<D: Dialect> CppCompiler<D> {
                 c: self.compile_variable(op.c),
                 out: self.compile_variable(out),
             }),
+            gpu::Arithmetic::Dp4a(op) => instructions.push(Instruction::Dp4a {
+                a: self.compile_variable(op.a),
+                b: self.compile_variable(op.b),
+                c: self.compile_variable(op.c),
+                out: self.compile_variable(out),
+            }),
             gpu::Arithmetic::Neg(op) => {
                 instructions.push(Instruction::Neg(self.compile_unary(op, out)))
             }

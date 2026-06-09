@@ -484,7 +484,10 @@ fn try_const_eval_arithmetic(op: &mut Arithmetic) -> Option<ConstantValue> {
         Arithmetic::Erf(_)
         | Arithmetic::Magnitude(_)
         | Arithmetic::Normalize(_)
-        | Arithmetic::VectorSum(_) => None,
+        | Arithmetic::VectorSum(_)
+        // dp4a is a bit-level intrinsic over packed int8s; not worth
+        // constant-folding through.
+        | Arithmetic::Dp4a(_) => None,
     }
 }
 

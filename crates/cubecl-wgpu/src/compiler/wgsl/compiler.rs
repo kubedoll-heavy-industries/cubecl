@@ -767,6 +767,11 @@ impl WgslCompiler {
             cube::Arithmetic::SaturatingAdd(_) => {
                 unreachable!("Saturating add should be removed by processor");
             }
+            cube::Arithmetic::Dp4a(_) => {
+                // CUDA-only intrinsic. WGSL targets should polyfill this as
+                // four signed-int8 multiplies + an add; not implemented yet.
+                unimplemented!("Dp4a not implemented for WGSL; use CUDA backend or add a polyfill");
+            }
             cube::Arithmetic::Fma(op) => instructions.push(wgsl::Instruction::Fma {
                 a: self.compile_variable(op.a),
                 b: self.compile_variable(op.b),

@@ -67,6 +67,11 @@ pub enum Arithmetic {
     #[operation(commutative)]
     MulHi(BinaryOperands),
     VectorSum(UnaryOperands),
+    /// 4-element signed int8 dot product with int32 accumulator.
+    /// `out = c + sum_{i=0..4}(a.byte(i) as i32 * b.byte(i) as i32)`.
+    /// Lowers to CUDA's `__dp4a` intrinsic (SM_61+); on backends without
+    /// hardware support it falls back to a 4-element unrolled multiply-add.
+    Dp4a(Dp4aOperands),
 }
 
 impl Display for Arithmetic {
@@ -123,6 +128,7 @@ impl Display for Arithmetic {
             Arithmetic::Dot(op) => write!(f, "{}.dot({})", op.lhs, op.rhs),
             Arithmetic::MulHi(op) => write!(f, "mul_hi({}, {})", op.lhs, op.rhs),
             Arithmetic::VectorSum(op) => write!(f, "{}.vector_sum()", op.input),
+            Arithmetic::Dp4a(op) => write!(f, "dp4a({}, {}, {})", op.a, op.b, op.c),
         }
     }
 }
@@ -140,6 +146,19 @@ pub struct ClampOperands {
 #[derive(Debug, Clone, TypeHash, PartialEq, Eq, Hash, OperationArgs)]
 #[allow(missing_docs)]
 pub struct FmaOperands {
+    pub a: Variable,
+    pub b: Variable,
+    pub c: Variable,
+}
+
+/// Operands for the [`Arithmetic::Dp4a`] intrinsic.
+///
+/// `a` and `b` are packed int8×4 inputs (read as `i32` / `u32` containers).
+/// `c` is the int32 accumulator added to the dot result.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Debug, Clone, TypeHash, PartialEq, Eq, Hash, OperationArgs)]
+#[allow(missing_docs)]
+pub struct Dp4aOperands {
     pub a: Variable,
     pub b: Variable,
     pub c: Variable,

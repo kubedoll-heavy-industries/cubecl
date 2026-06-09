@@ -95,6 +95,11 @@ impl<'a> Visitor<'a> {
             Arithmetic::SaturatingAdd(_) => {
                 unreachable!("Should be removed by preprocessor")
             }
+            Arithmetic::Dp4a(_) => {
+                // CUDA-only intrinsic. CPU targets would polyfill as 4
+                // signed-int8 multiplies + add; not implemented yet.
+                unimplemented!("Dp4a not implemented for CPU backend; use CUDA or add a polyfill")
+            }
             Arithmetic::Ceil(ceil) => {
                 let value = self.get_variable(ceil.input);
                 let result = self.append_operation_with_result(llvm_ods::intr_ceil(

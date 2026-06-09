@@ -36,6 +36,13 @@ impl<T: SpirvTarget> SpirvCompiler<T> {
             Arithmetic::SaturatingAdd(_) => {
                 unimplemented!("Should be replaced by polyfill");
             }
+            Arithmetic::Dp4a(_) => {
+                // CUDA-only intrinsic. SPIR-V targets without a hardware
+                // equivalent (OpSDot is Vulkan 1.3+ / shader-extension) should
+                // polyfill this as four signed-int8 multiplies + an add.
+                // For now we require the CUDA backend.
+                unimplemented!("Dp4a not implemented for SPIR-V; use CUDA backend or add a polyfill");
+            }
             Arithmetic::Sub(op) => {
                 self.compile_binary_op(op, out, uniform, |b, out_ty, ty, lhs, rhs, out| {
                     match out_ty.elem() {

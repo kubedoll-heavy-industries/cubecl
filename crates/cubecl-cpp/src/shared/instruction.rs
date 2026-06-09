@@ -65,6 +65,14 @@ pub enum Instruction<D: Dialect> {
         c: Variable<D>,
         out: Variable<D>,
     },
+    /// 4-element signed int8 dot product with int32 accumulator.
+    /// Lowers to CUDA's `__dp4a` intrinsic on supported devices.
+    Dp4a {
+        a: Variable<D>,
+        b: Variable<D>,
+        c: Variable<D>,
+        out: Variable<D>,
+    },
     Div(BinaryInstruction<D>),
     Rem(BinaryInstruction<D>),
     ModFloor(BinaryInstruction<D>),
@@ -578,6 +586,7 @@ for ({i_ty} {i} = {start}; {i} {cmp} {end}; {increment}) {{
             }
             Instruction::Warp(it) => write!(f, "{it}"),
             Instruction::Fma { a, b, c, out } => Fma::format(f, a, b, c, out),
+            Instruction::Dp4a { a, b, c, out } => Dp4a::format(f, a, b, c, out),
             Instruction::Wmma(it) => write!(f, "{it}"),
             Instruction::Bitcast(UnaryInstruction { input, out }) => {
                 let qualifier = out.const_qualifier();
@@ -771,6 +780,38 @@ impl<D: Dialect> Fma<D> {
             f.write_str("};\n")
         } else {
             writeln!(f, "{out} = fma({a}, {b}, {c});")
+        }
+    }
+}
+
+struct Dp4a<D: Dialect> {
+    _dialect: PhantomData<D>,
+}
+
+impl<D: Dialect> Dp4a<D> {
+    fn format(
+        f: &mut core::fmt::Formatter<'_>,
+        a: &Variable<D>,
+        b: &Variable<D>,
+        c: &Variable<D>,
+        out: &Variable<D>,
+    ) -> core::fmt::Result {
+        // CUDA emits `__dp4a(a, b, c)` directly. On SM_61+ this is a
+        // single PTX instruction (`dp4a.s32.s32`). On older devices the
+        // CUDA driver synthesizes the same semantics as 4 imul+adds.
+        let out_item = out.item();
+        let out = out.fmt_left();
+        if let Item::Vector(_, num) = out_item {
+            writeln!(f, "{out} = {out_item}{{")?;
+            for i in 0..num {
+                let ai = a.index(i);
+                let bi = b.index(i);
+                let ci = c.index(i);
+                writeln!(f, "__dp4a({ai}, {bi}, {ci}),")?;
+            }
+            f.write_str("};\n")
+        } else {
+            writeln!(f, "{out} = __dp4a({a}, {b}, {c});")
         }
     }
 }
