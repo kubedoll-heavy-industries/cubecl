@@ -1,7 +1,10 @@
 // Wrapper for https://docs.nvidia.com/cuda/parallel-thread-execution/#parallel-synchronization-and-communication-instructions-cp-async-mbarrier-arrive
 inline __device__ void
 __cp_async_arrive(::cuda::barrier<::cuda::thread_scope_block> &__bar) {
-  uint64 *mbar_ptr = ::cuda::device::barrier_native_handle(__bar);
+  // `barrier_native_handle` returns `cuda::std::uint64_t*` (`unsigned long*` on LP64,
+  // CUDA 13.x), which is not implicitly convertible to `uint64*`
+  // (`unsigned long long*`) even though the widths match. Use `auto`.
+  auto *mbar_ptr = ::cuda::device::barrier_native_handle(__bar);
 
   uint32 smem_int_mbar =
       static_cast<uint32>(__cvta_generic_to_shared(mbar_ptr));
