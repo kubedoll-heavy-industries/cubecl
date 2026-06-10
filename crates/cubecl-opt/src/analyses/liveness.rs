@@ -125,6 +125,7 @@ fn calculate_block_sets(func: &mut Function, state: &GlobalState, block: NodeInd
 
 /// Shared memory liveness analysis and allocation
 pub mod shared {
+    use alloc::collections::BTreeMap;
     use alloc::vec::Vec;
     use cubecl_ir::{Marker, Operation, Type, Variable, VariableKind};
 
@@ -169,10 +170,16 @@ pub mod shared {
         live_vars: HashMap<NodeIndex, HashSet<Id>>,
         /// Map of all shared memories by their ID. Populated during the first pass with all
         /// accessed shared memories.
-        pub shared_memories: HashMap<Id, SharedMemory>,
+        ///
+        /// `BTreeMap` keeps iteration (and therefore declaration emission downstream)
+        /// deterministic across runs.
+        pub shared_memories: BTreeMap<Id, SharedMemory>,
         /// Map of allocations for each shared memory by its ID. Populated after the analysis, and
         /// should contain all memories from `shared_memories`.
-        pub allocations: HashMap<Id, SmemAllocation>,
+        ///
+        /// `BTreeMap` keeps iteration (and therefore declaration emission downstream)
+        /// deterministic across runs.
+        pub allocations: BTreeMap<Id, SmemAllocation>,
     }
 
     impl Analysis for SharedLiveness {
@@ -234,7 +241,12 @@ pub mod shared {
         /// See also [`allocate_slice`]
         fn allocate_slices(&mut self, func: &mut Function) {
             for block in func.node_ids() {
-                for live_smem in self.at_block(block).clone() {
+                // `at_block` returns a `HashSet`, whose iteration order is randomized per
+                // process. Offsets depend on allocation order, so sort by ID to keep the
+                // assignment deterministic across runs.
+                let mut live_smems: Vec<Id> = self.at_block(block).iter().copied().collect();
+                live_smems.sort_unstable();
+                for live_smem in live_smems {
                     if !self.allocations.contains_key(&live_smem) {
                         let smem = self.shared_memories[&live_smem];
                         let offset = self.allocate_slice(block, smem.size(), smem.align);
